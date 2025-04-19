@@ -1,0 +1,25 @@
+name: Build Docker Image
+
+runs-on: ubuntu-latest
+
+inputs:
+  environment:
+    description: 'The environment to deploy to (staging or production)'
+    required: true
+
+steps:
+  - name: Log in to Amazon ECR
+    run: |
+      aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+  - name: Build Docker Image
+    run: |
+      docker build -t fastapi-lambda .
+
+  - name: Tag Docker Image
+    run: |
+      docker tag fastapi-lambda:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/fastapi-lambda:${{ github.sha }}
+
+  - name: Push Docker Image to ECR
+    run: |
+      docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/fastapi-lambda:${{ github.sha }}

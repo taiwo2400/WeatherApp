@@ -1,0 +1,36 @@
+name: FastAPI Lambda CI/CD
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [staging, production]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build Docker Image
+        uses: ./.github/workflows/modules/build-docker.yml
+        with:
+          environment: ${{ matrix.environment }}
+
+      - name: Provision AWS Services
+        uses: ./.github/workflows/modules/provision-aws.yml
+        with:
+          environment: ${{ matrix.environment }}
