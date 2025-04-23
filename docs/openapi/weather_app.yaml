@@ -1,0 +1,326 @@
+openapi: 3.0.2
+info:
+  title: "weather_app API"
+  version: "1.0.3"
+  description: |
+    OpenAPI schema for weather_app
+  x-author: "John Doe"
+  x-website: "https://omolewadavids.com"
+  x-contact:
+    name: "API Support"
+    email: "support@my-api.com"
+  contact:
+    name: "API Support"
+    email: "info@omolewadavids.com"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+
+paths:
+
+  /version-info:
+    get:
+      operationId: weather_appVersion
+      summary: "get: version of weather_app"
+      description: "Returns information about the currently deployed version of the weather_app"
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+        - OAuth2: [read]
+      tags:
+        - "Documentation"  # Add a tag to categorize this endpoint
+        - "Private API"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+          4xx:
+            statusCode: 400
+          5xx:
+            statusCode: 500
+        uri: ${INVOKE_ARN}
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        contentHandling: CONVERT_TO_TEXT
+        type: aws_proxy
+      responses:
+        200:
+          description: "Successful response"
+          content:
+            application/json:
+              schema:
+                type: "#/components/schema/Version"
+                properties:
+                  version:
+                    type: string
+              example:
+                values:
+                  version: "1.0.0"
+                  release_date: "2025-03-18"
+                  status: "Active"
+                  commit_hash: "abc123def456gh789"
+                  changelog_url: "https://omolewadavids.com/changelog" # to keep track of the changes in the API/bug fixes
+                  server: "FastAPI"
+                  environment: "production"
+                  uptime: "72 hours"
+                  documentation_url: "https://omolewadavids.com/docs"
+                  license: "OMOLEWA Licence"
+                  contact: "Omolewa Adaramola, omolewa.davids@gmail.com"
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /users:
+    get:
+      summary: "get: users list"
+      operationId: getUsers
+      security:
+        - OAuth2: []
+      tags:
+        - "Users"
+        - "Private API"
+      description: |
+        Allow super user to get all admins
+      parameters:
+        - name: page
+          in: query
+          description: "Page number"
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: "Number of items per page"
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: "List of users with pagination"
+
+  /weather/city:
+    post:
+      operationId: weatherRequest
+      tags:
+        - "Weather"
+        - "Public API"
+      summary: "weather: request-weather"
+      description: |
+        Allows a user to request a weather info about a city.
+      parameters:
+        - name: city
+          in: path
+          required: true
+          schema:
+            type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+          4xx:
+            statusCode: 400
+          5xx:
+            statusCode: 500
+        uri: ${INVOKE_ARN}
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        contentHandling: CONVERT_TO_TEXT
+        type: aws_proxy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                city:
+                  type: string
+                  description: "city name."
+                country:
+                  type: string
+                  description: "country name."
+                temperature:
+                  type: string
+                  description: "temperature of the city."
+                humidity:
+                  type: string
+                  description: "humidity of the city."
+                pressure:
+                  type: string
+                  description: "pressure of the city."
+                wind_speed:
+                  type: string
+                  description: "wind speed of the city."
+                description:
+                  type: string
+                  description: "description of the weather outlook"
+
+              required:
+                - city
+                - country
+                - temperature
+                - humidity
+                - pressure
+                - wind_speed
+                - description
+      responses:
+        "201":
+          description: "User registered successfully."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    description: "The unique identifier of the newly registered user."
+                  message:
+                    type: string
+                    description: "Success message."
+              examples:
+                success_example:
+                  summary: "Example Successful Response"
+                  value:
+                    city: london
+                    country: GBR
+                    temperature: 72
+                    humidity: 64
+                    pressure: 734
+                    wind_speed: 20.3
+                    description: "clear sky"
+        "400":
+          description: "Bad request. Invalid input or missing required fields."
+        "409":
+          description: "Conflict. Email or Username already exists."
+
+  /users/login:
+    post:
+      operationId: loginUser
+      tags:
+        - "Users"
+        - "Authentication"
+        - "Public API"
+      summary: "post: user login"
+      description: |
+        Authenticates a user using email and password.  
+        Returns a JWT token upon successful login, which is used for protected routes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: "The registered email address of the user."
+                password:
+                  type: string
+                  format: password
+                  description: "The user's password."
+              required:
+                - email
+                - password
+            examples:
+              user_example:
+                summary: "Example Login Request"
+                value:
+                  email: "user@example.com"
+                  password: "securepassword"
+      responses:
+        "200":
+          description: "User authenticated successfully."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: "JWT access token for authentication."
+                  token_type:
+                    type: string
+                    enum: [ "Bearer" ]
+                    description: "Indicates the token type."
+              examples:
+                success_example:
+                  summary: "Example Successful Response"
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                    token_type: "Bearer"
+        "400":
+          description: "Bad request. Invalid input format."
+        "401":
+          description: "Unauthorized. Invalid email or password."
+        "500":
+          description: "Internal server error"
+
+  /openapi.yaml:
+    get:
+      operationId: getOpenAPI
+      tags:
+        - "Documentation"
+        - "Authentication"
+      summary: "Get the OpenAPI schema in YAML format"
+      description: "Retrieve the OpenAPI schema for the API in YAML format."
+      security:
+        - BearerAuth: [ ]
+      responses:
+        "200":
+          description: "Returns the OpenAPI YAML definition"
+          content:
+            text/yaml:
+              schema:
+                type: string
+                example: |
+                  openapi: 3.0.0
+                  info:
+                    title: "My Custom API"
+                    version: "1.0.0"
+                    description: "Custom OpenAPI schema for my project"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: "https://omolewadavids.com/auth"
+          tokenUrl: "https://omolewadavids.com/token"
+          scopes:
+            read: "Read access"
+            write: "Write access"
+
+tags:
+  - name: "Documentation"
+    description: "information about weather_app App"
+    externalDocs:
+      description: "weather_app API Documentation"
+      url: "https://docs.example.com/admin-api"
+  - name: "Users"
+    description: "Operations related to user accounts"
+  - name: "Weather"
+    description: "Operations related to city weather"
+  - name: "Authentication"
+    description: "Endpoints: user authentication for login and token management."
+    externalDocs:
+      description: "Learn more about Authentication"
+      url: "https://my-api.com/authentication-guide"
+  - name: "Public API"
+    description: "Endpoints that are accessible publicly"
+  - name: "Private API"
+    description: "Endpoints that require authentication"
