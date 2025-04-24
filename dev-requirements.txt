@@ -1,0 +1,17 @@
+annotated-types==0.7.0
+anyio==4.9.0
+attrs==25.3.0
+bcrypt==4.3.0
+click==8.1.8
+cryptography==44.0.2
+fastapi==0.115.11
+openapi==2.0.0
+openapi-schema-validator==0.6.3
+openapi-spec-validator==0.7.1
+passlib==1.7.4
+pydantic==2.10.6
+PyJWT==2.10.1
+pytest==8.3.5
+python-dotenv==1.0.1
+PyYAML==6.0.2
+uvicorn==0.34.0
