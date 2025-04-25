@@ -1,0 +1,57 @@
+services:
+  # Definition of build service for use in Github Action. This takes a snapshot
+  # of the code, runs functional tests, and outputs code coverage report
+
+  weather_app-test:
+    image: weather_app-test:${GIT_COMMIT:-unspecified}
+    build:
+      context: ./
+      dockerfile: ops/Dockerfile
+      target: build
+    env_file:
+      - ops/test-variables.env
+    depends_on:
+      - postgres
+    volumes:
+      - ./reports:/weather_app/reports
+    command: >
+      """wait-for-postgres.py --host postgres &&
+      pytest -o junit_family=xunit2 \
+             --junitxml /weather_app/reports/report.xml \
+             --cov weather_app/ \
+             --cov-report term-missing \
+             --cov-report xml:/weather_app/reports/coverage.xml \
+             --cov-report annotate:/weather_app/reports/ \
+             --durations=20 \
+             tests/functional"""
+
+  # Definition of development service for use on local machines.
+  # Shares the current directory within the docker to enable fst
+  # development iteration
+  weather_app-dev:
+    build:
+      context: ./
+      dockerfile: ops/Dockerfile
+      target: devl
+    env_file:
+      - ops/test-variables.env
+    depends_on:
+      - postgres
+    volumes:
+      - .:/weather_app
+
+  weather_app-development-test:
+    build:
+      context: ./
+      dockerfile: ops/Dockerfile
+      target: build
+    environment:
+      - INVOKE_URL
+      - GIT_COMMIT
+    command: >
+      """py.test --endpoint-url ${INVOKE_URL:-unspecified} --git-has ${GIT_COMMIT:-unspecified} tests/deployment"""
+      
+  postgres:
+    image: "postgis/postgis:13-3.1"
+    environment:
+      POSTGRES_PASSWORD: "postgres"
